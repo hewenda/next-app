@@ -35,3 +35,9 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+.env
+pages/clash/configs/*.yml
+pages/clash/configs/*.yaml
+pages/blog/mdx/*.mdx
+pages/blog/mdx/*.md
