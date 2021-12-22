@@ -28,14 +28,17 @@ export const getFileSourceByFileName = async (fileName: string) => {
 
   if (fs.existsSync(filePath)) {
     const fileSource = fs.readFileSync(filePath, "utf-8");
-    const { data: matterData } = matter(fileSource);
 
-    const { code } = await bundleMDX({
+    const { code, frontmatter } = await bundleMDX({
       source: fileSource,
     });
 
     return {
-      source: code,
+      code,
+      frontmatter: {
+        ...frontmatter,
+        date: frontmatter.date ? frontmatter.date.valueOf() : null,
+      },
     };
   }
 };

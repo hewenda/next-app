@@ -3,44 +3,54 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { GetStaticProps, GetStaticPaths } from "next";
-import { getMDXComponent } from "mdx-bundler/client";
 import {
   getAllFilesFrontMatter,
   getFileSourceByFileName,
   MDXMatter,
 } from "lib/blog";
 import * as R from "ramda";
-import { useRouter } from "next/router";
+import moment from "moment";
+
+import Article from "components/article";
 
 export const matterTitleToUrl = R.pipe(R.toLower, R.replace(/\s/g, "-"));
 
 interface Props {
   blogs: Array<MDXMatter>;
-  source: string | null;
+  source: { code?: string; frontmatter?: { [key: string]: any } };
 }
 
 const Blog: NextPage<Props> = (props) => {
-  const { blogs = [], source } = props;
+  const {
+    blogs = [],
+    source: { code, frontmatter },
+  } = props;
 
-  const Component = React.useMemo(() => {
-    if (source) {
-      return getMDXComponent(source);
-    }
-  }, [source]);
+  if (code && frontmatter) {
+    return (
+      <>
+        <Head>
+          <title>{frontmatter?.title}</title>
+        </Head>
+        <Article matter={frontmatter} content={code} />
+      </>
+    );
+  }
 
   return (
     <div>
       <Head>
-        <title>Blog</title>
+        <title>Blogs</title>
       </Head>
       <div className="container mx-auto py-4">
-        {Component && <Component />}
-
         {blogs.map((blog) => (
-          <div key={blog.title}>
+          <div key={blog.title} className="flex flex-col">
             <Link href={`/blog/${matterTitleToUrl(blog.title)}`}>
-              <a>{blog.title}</a>
+              <a className="text-bold">{blog.title}</a>
             </Link>
+            <div className="flex items-center text-sm mt-1">
+              <span>{blog.date && moment(blog.date).format("YYYY-MM-DD")}</span>
+            </div>
           </div>
         ))}
       </div>
@@ -69,11 +79,11 @@ export const getStaticPaths: GetStaticPaths = async () => {
   };
 };
 
-export const getStaticProps: GetStaticProps = async (ctx) => {
+export const getStaticProps: GetStaticProps<Props> = async (ctx) => {
   const blogs = getAllFilesFrontMatter();
 
   const title = ctx.params?.slug?.[0];
-  let source: string | null = null;
+  let source: Props["source"] = {};
 
   if (title) {
     const blog = R.find(
@@ -83,7 +93,8 @@ export const getStaticProps: GetStaticProps = async (ctx) => {
         R.equals(title)
       )
     )(blogs);
-    source = (await getFileSourceByFileName(blog.fileName))?.source ?? null;
+
+    source = (await getFileSourceByFileName(blog.fileName)) ?? {};
   }
 
   return {

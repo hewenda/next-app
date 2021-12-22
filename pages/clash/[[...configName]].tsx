@@ -10,7 +10,6 @@ import { cx } from "@emotion/css";
 import debounce from "lodash/debounce";
 import * as Icon from "react-feather";
 import * as R from "ramda";
-import { useRouter } from "next/router";
 
 const Editor = dynamic(() => import("components/editor"), { ssr: false });
 
@@ -26,7 +25,6 @@ interface Props<T = string> {
 
 const ClashHome: NextPage<Props> = (props) => {
   const configName = React.useRef<string | null>(props.configName);
-  const { asPath } = useRouter();
   const { configNames = [], directSecret = "" } = props;
 
   const [changedValue, setChangedValue] = React.useState<string>();
@@ -38,7 +36,7 @@ const ClashHome: NextPage<Props> = (props) => {
     const res = await fetch(`/api/clash/${configName.current}`);
     const result = await res.text();
 
-    setChangedValue(result);
+    setChangedValue(undefined);
     return result;
   }, []);
 
@@ -83,23 +81,29 @@ const ClashHome: NextPage<Props> = (props) => {
       <div className="flex flex-auto relative">
         <div
           className={cx(
-            "fixed bottom-3 left-2/4 w-28 -ml-14 flex justify-around z-50	shadow-md px-3 py-2 rounded",
-            changedValue === configState.value ? "hidden" : ""
+            "fixed top-5 right-1/2 -mr-14 w-28 -ml-14 flex justify-around z-50",
+            !Boolean(changedValue) ? "hidden" : ""
           )}
         >
-          <Icon.Save onClick={onSave} />
+          <Icon.Save className="cursor-pointer" onClick={onSave} />
         </div>
         <div className="flex flex-col flex-none w-40 self-start sticky top-2">
           {configNames.map((val, idx) => (
             <div
               key={val}
               className={cx(
-                "relative group shadow-md px-2 py-2 rounded transition-all bg-white",
-                idx !== 0 ? "mt-3" : ""
+                "relative group shadow-md px-2 py-2 rounded transition-all bg-white border-b",
+                idx !== 0 ? "mt-3" : "",
+                configName.current === val ? "border-green-600" : ""
               )}
             >
-              <div className="group-hover:opacity-30 w-full truncate">
-                {val}
+              <div className="group-hover:opacity-30 w-full flex items-center">
+                {configName.current === val ? (
+                  <Icon.ArrowRight className="inline-block mr-2" size={12} />
+                ) : (
+                  ""
+                )}
+                <p className="flex-1 truncate">{val}</p>
               </div>
               <div className="absolute inset-y-0 w-full bg-gray-100/[.4] flex items-center justify-around opacity-0 pointer-none left-full group-hover:left-0 group-hover:opacity-100 transition-all">
                 <Icon.Edit
@@ -118,7 +122,7 @@ const ClashHome: NextPage<Props> = (props) => {
                   className="cursor-pointer"
                   onClick={() => {
                     copyToClipboard(
-                      `${location.origin}/api${asPath}/${directSecret}`
+                      `${location.origin}/api/clash/${configName.current}/${directSecret}`
                     );
                   }}
                 />
