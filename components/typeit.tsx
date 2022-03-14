@@ -1,31 +1,50 @@
 import React from "react";
+import { useInterval, useAsync } from "react-use";
 
 const TypeIt = require("typeit").default;
 const shici = require("jinrishici");
+const lifeCycle = require("page-lifecycle").default;
 
 interface Props {
   className?: string;
 }
 
+const queryShici = () =>
+  new Promise<string>((resolve, reject) => {
+    shici.load((result: any) => {
+      const content = result?.data?.content;
+      resolve(content as string);
+    });
+  });
+
 const TypeLine: React.FC<Props> = (props) => {
   const [type, setType] = React.useState<string>();
+  const [timer, setTimer] = React.useState<number | null>(10e3);
   const inst = React.useRef<any>();
 
-  React.useEffect(() => {
-    const load = () =>
-      shici.load((result: any) => {
-        const content = result?.data?.content;
-        setType(content);
-      });
+  useInterval(async () => {
+    const content = await queryShici();
 
-    load();
+    if (content) {
+      setType(content);
+    }
+  }, timer);
 
-    const timer = setInterval(() => {
-      load();
-    }, 10_000);
+  useAsync(async () => {
+    setType(await queryShici());
+
+    const changes = (event: any) => {
+      if (event.newState === "hidden") {
+        setTimer(null);
+      } else {
+        setTimer(10e3);
+      }
+    };
+
+    lifeCycle.addEventListener("statechange", changes);
 
     return () => {
-      clearInterval(timer);
+      lifeCycle.removeEventListener("statechange", changes);
     };
   }, []);
 
